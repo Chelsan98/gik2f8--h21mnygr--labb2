@@ -1,3 +1,6 @@
+// starta servern med cd 02-todo/server
+// npm run dev app.js för att få den att uppdatera sig själv
+// node app.js annars
 /* Importrerar nodemodulen express (installerad med npm), som är ett utbrett verktyg för att skapa och arbeta med webbservrar och hantera HTTP-förfrågningar i ett nodejs-backend. */
 const express = require('express');
 /* Skapar upp ett express-objekt, som i stort representerar en webbserver */
@@ -22,14 +25,7 @@ app
     next();
   });
 
-/* Express (som finns i variabeln app) har metoder för att specificera vad som ska hända vid olika HTTP-metoder. Man anropar metoden get() hos expressobjektet för att fånga upp förfrågningar med metoden GET - alltså en GET-förfrågan -  från en klient.  */
 
-/* .get tar emot
-  1. En route, som utgör en del av adressen/URL:en dit man kan skicka förfrågan. Man anger det som ska stå efter domän och port (vår server är konfigurerar som default att köra på localhost:5000), så här metod lyssnar man alltså efter GET-anrop till url:en localhost:5000/task
-  
-  Notera att route-namnen döps om i lektion 6. De ska heta tasks, inte task, men felet är enligt videorna inte tillrättat i detta skede, så jag lämnar kvar det. 
-
-  2. En callbackfunktion som kommer att köras när en sådan förfrågan görs. Callbackfunktionen tar (minst) två parametrar - ett requestobjekt och ett responseobjekt, som här kallas req och res. Callbackfunktionen är asynkron för att vi använder await inuti. */
 app.get('/tasks', async (req, res) => {
   /* För enkel felhantering används try/catch */
   try {
@@ -93,10 +89,7 @@ app.delete('/tasks/:id', async (req, res) => {
     const currentTasks = JSON.parse(listBuffer);
     /* Först en kontroll om det ens finns något i filen, annars finns ju inget att ta bort */
     if (currentTasks.length > 0) {
-      /* Om det finns något i filen görs här en hel del i samma anrop: 
-      1. De befintliga uppgifterna (currentTasks), filtreras så att den uppgift med det id som skickades in filtreras bort och endast de uppgifter som inte hade det id:t är kvar.
-      2. Arrayen med alla uppgifter utom den med det id som skickades in görs om till en sträng med JSON.stringify
-      3. Denna sträng sparas slutgilgingen till filen tasks.json, så att det kommer att finnas en uppdaterad lista som inte längre innehåller uppgiften med det id som skickades in via url:en. */
+     
       await fs.writeFile(
         './tasks.json',
         JSON.stringify(currentTasks.filter((task) => task.id != id))
@@ -114,10 +107,31 @@ app.delete('/tasks/:id', async (req, res) => {
 });
 
 /***********************Labb 2 ***********************/
-/* Här skulle det vara lämpligt att skriva en funktion som likt post eller delete tar kan hantera PUT- eller PATCH-anrop (du får välja vilket, läs på om vad som verkar mest vettigt för det du ska göra) för att kunna markera uppgifter som färdiga. Den nya statusen - completed true eller falase - kan skickas i förfrågans body (req.body) tillsammans med exempelvis id så att man kan söka fram en given uppgift ur listan, uppdatera uppgiftens status och till sist spara ner listan med den uppdaterade uppgiften */
+app.put('/tasks', async (req, res) => {
+  const task = req.body;
+  
+  var newTask = {
+    id: task.id,
+    title: task.title,
+    description: task.description,
+    dueDate: task.dueDate,
+    completed: task.completed
+  };
 
-/* Observera att all kod rörande backend för labb 2 ska skrivas i denna fil och inte i app.node.js. App.node.js är bara till för exempel från lektion 5 och innehåller inte någon kod som används vidare under lektionerna. */
-/***********************Labb 2 ***********************/
+  try{
+      // läs filen och filtrera bort den gamla tasken och bygg upp listan igen med den uppdaterade tasken.
+      var currentList = await fs.readFile('./tasks.json');
+      const currentTasks = JSON.parse(currentList);
+      const filteredTasks = currentTasks.filter(task => task.id != newTask.id); 
+      const newList = [...filteredTasks, newTask]; 
+      await fs.writeFile('./tasks.json', JSON.stringify(newList)); 
+      res.send(newTask);
+  }
+  catch (err){
+      console.log(err.stack);
+  }
+  
+});
 
-/* Med app.listen säger man åte servern att starta. Första argumentet är port - dvs. det portnummer man vill att servern ska köra på. Det sattes till 5000 på rad 9. Det andra argumentet är en anonym arrow-funktion som körs när servern har lyckats starta. Här skrivs bara ett meddelande ut som berättar att servern kör, så att man får feedback på att allt körts igång som det skulle. */
+
 app.listen(PORT, () => console.log('Server running on http://localhost:5000'));
